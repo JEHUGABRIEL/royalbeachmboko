@@ -1,16 +1,18 @@
 import { site } from "@/lib/data";
+import { getSettings } from "@/lib/queries";
 
-export default function MapEmbed({ overlap = false }: { overlap?: boolean }) {
-  const src = `https://maps.google.com/maps?q=${encodeURIComponent(site.mapQuery)}&z=13&output=embed`;
+export default async function MapEmbed({ overlap = false }: { overlap?: boolean }) {
+  const s = await getSettings();
+  const src = `https://maps.google.com/maps?q=${encodeURIComponent(s.mapQuery)}&z=13&output=embed`;
   return (
     <div className={`map${overlap ? " map--overlap" : ""}`}>
       <iframe src={src} title={`Carte — ${site.name}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
       <div className="map__card">
         <strong>{site.name}</strong>
         <br />
-        {site.address}
+        {s.address}
         <br />
-        Tél. {site.phone}
+        Tél. {s.phone}
       </div>
     </div>
   );

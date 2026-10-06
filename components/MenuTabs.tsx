@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { formatPrice, menu } from "@/lib/data";
+import { formatPrice, type MenuCategory } from "@/lib/data";
 
-type Props = { limit?: number; showFooter?: boolean };
+type Props = { menu: MenuCategory[]; limit?: number; showFooter?: boolean };
 
-export default function MenuTabs({ limit, showFooter = false }: Props) {
-  const [active, setActive] = useState(menu[0].id);
+export default function MenuTabs({ menu, limit, showFooter = false }: Props) {
+  const [active, setActive] = useState(menu[0]?.id);
   const category = menu.find((c) => c.id === active) ?? menu[0];
+  if (!category) return <p className="prose">La carte sera bientôt disponible.</p>;
   const items = limit ? category.items.slice(0, limit) : category.items;
 
   return (

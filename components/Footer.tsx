@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { hours, nav, site } from "@/lib/data";
+import { nav, site } from "@/lib/data";
+import { getSettings } from "@/lib/queries";
 import Logo from "./Logo";
 import Socials from "./Socials";
 import Newsletter from "./Newsletter";
 
-export default function Footer() {
+export default async function Footer() {
+  const s = await getSettings();
   return (
     <footer className="footer">
       <div className="container footer__grid">
@@ -15,15 +17,15 @@ export default function Footer() {
             aire de jeux et soirées face au fleuve.
           </p>
           <p>
-            {site.address}
+            {s.address}
             <br />
-            {site.phone} · {site.email}
+            {s.phone} · {s.email}
           </p>
         </div>
         <div>
           <h4>Horaires</h4>
           <ul>
-            {hours.map((h) => (
+            {s.hours.map((h) => (
               <li key={h.days}>
                 <strong style={{ color: "#bbb" }}>{h.days}</strong>
                 <br />
@@ -44,7 +46,7 @@ export default function Footer() {
           <h4>Newsletter</h4>
           <Newsletter />
           <div className="footer__follow">
-            Suivez-nous <Socials />
+            Suivez-nous <Socials facebook={s.facebook} instagram={s.instagram} whatsapp={s.whatsapp} />
           </div>
         </div>
       </div>

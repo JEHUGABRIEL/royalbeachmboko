@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Great_Vibes, Montserrat, Playfair_Display } from "next/font/google";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { site } from "@/lib/data";
 import "./globals.css";
 
@@ -18,11 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${script.variable} ${sans.variable} ${serif.variable}`}>
-      <body>
-        <Header />
-        <main>{children}</main>
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

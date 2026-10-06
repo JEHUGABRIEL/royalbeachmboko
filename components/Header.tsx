@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { nav, site } from "@/lib/data";
 import Logo from "./Logo";
-import Socials from "./Socials";
+import Socials, { type SocialLinks } from "./Socials";
 import { CloseIcon, MenuIcon } from "./Icons";
 
-export default function Header() {
+export default function Header({ socials }: { socials: SocialLinks }) {
   const pathname = usePathname();
   const [solid, setSolid] = useState(false);
   const [open, setOpen] = useState(false);
@@ -36,7 +36,7 @@ export default function Header() {
             );
           })}
         </nav>
-        <Socials />
+        <Socials {...socials} />
         <button
           className="burger"
           onClick={() => setOpen((v) => !v)}

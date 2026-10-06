@@ -54,7 +54,12 @@ export function EventFeature({ e }: { e: EventItem }) {
 }
 
 export default function Events({ events }: { events: EventItem[] }) {
-  const [feature, ...rest] = [events[events.length - 1], ...events.slice(0, -1)];
+  if (events.length === 0) {
+    return <p className="prose">Aucun événement programmé pour le moment. Revenez bientôt !</p>;
+  }
+  const feature = events[events.length - 1];
+  const rest = events.slice(0, -1);
+  if (rest.length === 0) return <EventFeature e={feature} />;
   return (
     <div className="events">
       <div className="events__stack">

@@ -1,6 +1,7 @@
-import { hours, site } from "@/lib/data";
+import { getSettings } from "@/lib/queries";
 
-export default function HoursCard() {
+export default async function HoursCard() {
+  const { hours, phone } = await getSettings();
   return (
     <aside className="hours">
       <div className="hours__inner on-dark">
@@ -20,7 +21,7 @@ export default function HoursCard() {
             ))}
           </div>
         ))}
-        <div className="hours__phone">{site.phone}</div>
+        <div className="hours__phone">{phone}</div>
       </div>
     </aside>
   );
