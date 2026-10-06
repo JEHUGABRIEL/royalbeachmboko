@@ -7,7 +7,7 @@ Site du restaurant (Next.js 16) avec back-office sur `/admin`.
 | Variable | Rôle |
 | --- | --- |
 | `DATABASE_URL` | Postgres (Neon en production, fourni par l'intégration Vercel) |
-| `BLOB_READ_WRITE_TOKEN` | Stockage des photos uploadées (Vercel Blob) |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Stockage des photos uploadées (dossier `royalbeach/` sur Cloudinary). Sans ces variables, en local, les images vont dans `public/uploads`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Envoi des e-mails d'invitation. Sans SMTP, le lien d'invitation s'affiche dans le back-office pour être copié. |
 | `APP_URL` (optionnel) | URL publique utilisée dans les liens d'invitation (sinon le domaine courant) |
 
