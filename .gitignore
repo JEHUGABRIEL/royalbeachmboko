@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+.vercel
+
+# Sources brutes (versions optimisées dans public/images)
+/images/
+/images (2)/
+/1f6e19cb87db65ce4bf02b96afcc1fa6.jpg
