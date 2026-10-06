@@ -1,181 +1,122 @@
-import { asc } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
+import IconButton from "@/components/admin/IconButton";
+import Modal, { ModalCancel } from "@/components/admin/Modal";
 import SubmitButton from "@/components/admin/SubmitButton";
 import type { PageProps } from "@/lib/admin";
-import { formatPrice } from "@/lib/data";
 import { db, schema } from "@/lib/db";
-import {
-  createCategory,
-  createItem,
-  deleteCategory,
-  deleteItem,
-  moveCategory,
-  moveItem,
-  renameCategory,
-  toggleItem,
-} from "./actions";
-import ItemFields from "./ItemFields";
+import { createCategory, deleteCategory, moveCategory, renameCategory } from "./actions";
 
-export const metadata: Metadata = { title: "Menu" };
+export const metadata: Metadata = { title: "Catégories du menu" };
 
-function Hidden({ id, dir }: { id: number; dir?: string }) {
-  return (
-    <>
-      <input type="hidden" name="id" value={id} />
-      {dir && <input type="hidden" name="dir" value={dir} />}
-    </>
-  );
-}
-
-export default async function MenuAdminPage({ searchParams }: PageProps) {
+export default async function CategoriesPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const [cats, items] = await Promise.all([
-    db.select().from(schema.menuCategories).orderBy(asc(schema.menuCategories.position), asc(schema.menuCategories.id)),
-    db.select().from(schema.menuItems).orderBy(asc(schema.menuItems.position), asc(schema.menuItems.id)),
-  ]);
-  const catOptions = cats.map(({ id, label }) => ({ id, label }));
+  const cats = await db
+    .select({
+      id: schema.menuCategories.id,
+      slug: schema.menuCategories.slug,
+      label: schema.menuCategories.label,
+      items: count(schema.menuItems.id),
+    })
+    .from(schema.menuCategories)
+    .leftJoin(schema.menuItems, eq(schema.menuItems.categoryId, schema.menuCategories.id))
+    .groupBy(schema.menuCategories.id)
+    .orderBy(asc(schema.menuCategories.position), asc(schema.menuCategories.id));
 
   return (
     <>
       <div className="admin-head">
         <div>
-          <h1>Menu</h1>
-          <p>Les catégories apparaissent comme onglets sur le site, dans cet ordre. Prix en FCFA.</p>
+          <h1>Catégories du menu</h1>
+          <p>Chaque catégorie est un onglet de la carte sur le site, dans cet ordre.</p>
         </div>
-        <details className="inline-edit">
-          <summary className="abtn abtn--primary">+ Nouvelle catégorie</summary>
-          <form action={createCategory} style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <input className="inline-input" name="label" placeholder="Ex. Desserts" required />
-            <SubmitButton small>Créer</SubmitButton>
+        <Modal title="Nouvelle catégorie" trigger={{ kind: "button", label: "Nouvelle catégorie", icon: "plus" }}>
+          <form action={createCategory} className="aform aform--1">
+            <div className="afield">
+              <label htmlFor="cat-label">Nom</label>
+              <input id="cat-label" name="label" placeholder="Ex. Desserts" required maxLength={60} autoFocus />
+            </div>
+            <div className="modal__foot">
+              <ModalCancel />
+              <SubmitButton>Créer</SubmitButton>
+            </div>
           </form>
-        </details>
+        </Modal>
       </div>
       <Flash ok={sp.ok} error={sp.error} />
 
-      {cats.length === 0 && <div className="acard empty">Créez une première catégorie (ex. Plats, Boissons).</div>}
-
-      {cats.map((cat, ci) => {
-        const catItems = items.filter((i) => i.categoryId === cat.id);
-        return (
-          <section className="acard acard--flush" key={cat.id}>
-            <div className="cat-head">
-              <h2>
-                {cat.label} <span className="muted">({catItems.length})</span>
-              </h2>
-              <div className="row-actions">
-                <details className="inline-edit">
-                  <summary className="abtn abtn--ghost abtn--sm">Renommer</summary>
-                  <form action={renameCategory} style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                    <Hidden id={cat.id} />
-                    <input className="inline-input" name="label" defaultValue={cat.label} required />
-                    <SubmitButton small>OK</SubmitButton>
-                  </form>
-                </details>
-                {ci > 0 && (
-                  <form action={moveCategory}>
-                    <Hidden id={cat.id} dir="up" />
-                    <SubmitButton small variant="ghost">
-                      ↑
-                    </SubmitButton>
-                  </form>
-                )}
-                {ci < cats.length - 1 && (
-                  <form action={moveCategory}>
-                    <Hidden id={cat.id} dir="down" />
-                    <SubmitButton small variant="ghost">
-                      ↓
-                    </SubmitButton>
-                  </form>
-                )}
-                <form action={deleteCategory}>
-                  <Hidden id={cat.id} />
-                  <SubmitButton
-                    small
-                    variant="danger"
-                    confirm={`Supprimer la catégorie « ${cat.label} » et ses ${catItems.length} plat(s) ?`}
-                  >
-                    Supprimer
-                  </SubmitButton>
-                </form>
-              </div>
-            </div>
-
-            {catItems.length > 0 && (
-              <div className="table-wrap">
-                <table className="atable">
-                  <tbody>
-                    {catItems.map((it, i) => (
-                      <tr key={it.id} style={it.available ? undefined : { opacity: 0.55 }}>
-                        <td>
-                          <strong>{it.name}</strong> {!it.available && <span className="pill pill--off">Masqué</span>}
-                          <div className="muted">{it.description}</div>
-                          {it.tags.length > 0 && <div className="muted">{it.tags.join(" / ")}</div>}
-                        </td>
-                        <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                          {it.oldPrice && (
-                            <div className="muted" style={{ textDecoration: "line-through" }}>
-                              {formatPrice(it.oldPrice)}
+      <div className="acard acard--flush">
+        {cats.length === 0 ? (
+          <div className="empty">Créez une première catégorie (ex. Plats, Boissons).</div>
+        ) : (
+          <div className="table-wrap">
+            <table className="atable">
+              <thead>
+                <tr>
+                  <th>Catégorie</th>
+                  <th>Plats</th>
+                  <th className="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cats.map((c, i) => (
+                  <tr key={c.id}>
+                    <td>
+                      <Link href={`/admin/menu/${c.slug}`} className="strong-link">
+                        {c.label}
+                      </Link>
+                    </td>
+                    <td>{c.items}</td>
+                    <td>
+                      <div className="row-actions">
+                        <form action={moveCategory}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="dir" value="up" />
+                          {i > 0 ? <IconButton icon="up" label="Monter" /> : <span className="ibtn-spacer" />}
+                        </form>
+                        <form action={moveCategory}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="dir" value="down" />
+                          {i < cats.length - 1 ? <IconButton icon="down" label="Descendre" /> : <span className="ibtn-spacer" />}
+                        </form>
+                        <Modal title="Renommer la catégorie" trigger={{ kind: "icon", icon: "edit", label: "Renommer" }}>
+                          <form action={renameCategory} className="aform aform--1">
+                            <input type="hidden" name="id" value={c.id} />
+                            <div className="afield">
+                              <label htmlFor={`cat-${c.id}`}>Nom</label>
+                              <input id={`cat-${c.id}`} name="label" defaultValue={c.label} required maxLength={60} autoFocus />
                             </div>
-                          )}
-                          <strong>{formatPrice(it.price)}</strong>
-                        </td>
-                        <td>
-                          <div className="row-actions">
-                            {i > 0 && (
-                              <form action={moveItem}>
-                                <Hidden id={it.id} dir="up" />
-                                <SubmitButton small variant="ghost">
-                                  ↑
-                                </SubmitButton>
-                              </form>
-                            )}
-                            {i < catItems.length - 1 && (
-                              <form action={moveItem}>
-                                <Hidden id={it.id} dir="down" />
-                                <SubmitButton small variant="ghost">
-                                  ↓
-                                </SubmitButton>
-                              </form>
-                            )}
-                            <Link href={`/admin/menu/${it.id}`} className="abtn abtn--ghost abtn--sm">
-                              Modifier
-                            </Link>
-                            <form action={toggleItem}>
-                              <Hidden id={it.id} />
-                              <input type="hidden" name="available" value={it.available ? "0" : "1"} />
-                              <SubmitButton small variant="ghost">
-                                {it.available ? "Masquer" : "Afficher"}
-                              </SubmitButton>
-                            </form>
-                            <form action={deleteItem}>
-                              <Hidden id={it.id} />
-                              <SubmitButton small variant="danger" confirm={`Supprimer « ${it.name} » ?`}>
-                                Supprimer
-                              </SubmitButton>
-                            </form>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <details className="inline-edit" style={{ padding: "14px 20px" }}>
-              <summary>+ Ajouter un plat dans « {cat.label} »</summary>
-              <form action={createItem} className="aform" style={{ marginTop: 14 }}>
-                <ItemFields categories={catOptions} item={{ categoryId: cat.id }} />
-                <div className="form-foot">
-                  <SubmitButton>Ajouter</SubmitButton>
-                </div>
-              </form>
-            </details>
-          </section>
-        );
-      })}
+                            <div className="modal__foot">
+                              <ModalCancel />
+                              <SubmitButton>Enregistrer</SubmitButton>
+                            </div>
+                          </form>
+                        </Modal>
+                        <ConfirmAction
+                          action={deleteCategory}
+                          fields={{ id: c.id }}
+                          label="Supprimer"
+                          title="Supprimer la catégorie ?"
+                          message={
+                            <>
+                              La catégorie <strong>{c.label}</strong> et ses {c.items} plat(s) seront définitivement
+                              supprimés.
+                            </>
+                          }
+                          confirmLabel="Supprimer"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </>
   );
 }

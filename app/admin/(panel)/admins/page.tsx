@@ -2,7 +2,10 @@ import { asc, eq, isNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import CopyLink from "@/components/admin/CopyLink";
+import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
+import IconButton from "@/components/admin/IconButton";
+import Modal, { ModalCancel } from "@/components/admin/Modal";
 import SubmitButton from "@/components/admin/SubmitButton";
 import { LINK_COOKIE, type PageProps } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
@@ -42,8 +45,21 @@ export default async function AdminsPage({ searchParams }: PageProps) {
       <div className="admin-head">
         <div>
           <h1>Administrateurs</h1>
-          <p>Personnes ayant accès au back-office. Invitez un nouvel administrateur par e-mail.</p>
+          <p>Personnes ayant accès au back-office.</p>
         </div>
+        <Modal title="Inviter un administrateur" trigger={{ kind: "button", label: "Inviter", icon: "plus" }}>
+          <form action={inviteAdmin} className="aform aform--1">
+            <div className="afield">
+              <label htmlFor="invite-email">Adresse e-mail</label>
+              <input id="invite-email" name="email" type="email" required placeholder="adresse@exemple.com" autoFocus />
+              <small>La personne reçoit un e-mail avec un lien (valable 7 jours) pour choisir son nom et son mot de passe.</small>
+            </div>
+            <div className="modal__foot">
+              <ModalCancel />
+              <SubmitButton>Envoyer l&apos;invitation</SubmitButton>
+            </div>
+          </form>
+        </Modal>
       </div>
       <Flash ok={sp.ok} error={sp.error} />
       {manual && sp.ok && (
@@ -53,17 +69,6 @@ export default async function AdminsPage({ searchParams }: PageProps) {
           <CopyLink link={manual.link} />
         </div>
       )}
-
-      <div className="acard">
-        <h2>Inviter un administrateur</h2>
-        <form action={inviteAdmin} style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input className="inline-input" style={{ flex: 1, minWidth: 240 }} name="email" type="email" required placeholder="adresse@exemple.com" />
-          <SubmitButton>Envoyer l&apos;invitation</SubmitButton>
-        </form>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          La personne reçoit un e-mail avec un lien pour choisir son nom et son mot de passe.
-        </p>
-      </div>
 
       {invites.length > 0 && (
         <div className="acard acard--flush">
@@ -88,16 +93,21 @@ export default async function AdminsPage({ searchParams }: PageProps) {
                         <div className="row-actions">
                           <form action={resendInvitation}>
                             <input type="hidden" name="id" value={inv.id} />
-                            <SubmitButton small variant="ghost">
-                              Renvoyer
-                            </SubmitButton>
+                            <IconButton icon="refresh" label="Renvoyer l'invitation" />
                           </form>
-                          <form action={cancelInvitation}>
-                            <input type="hidden" name="id" value={inv.id} />
-                            <SubmitButton small variant="danger" confirm={`Annuler l'invitation de ${inv.email} ?`}>
-                              Annuler
-                            </SubmitButton>
-                          </form>
+                          <ConfirmAction
+                            action={cancelInvitation}
+                            fields={{ id: inv.id }}
+                            icon="x"
+                            label="Annuler l'invitation"
+                            title="Annuler l'invitation ?"
+                            message={
+                              <>
+                                Le lien envoyé à <strong>{inv.email}</strong> ne fonctionnera plus.
+                              </>
+                            }
+                            confirmLabel="Annuler l'invitation"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -122,16 +132,23 @@ export default async function AdminsPage({ searchParams }: PageProps) {
                     <strong>{a.name}</strong> {a.id === me.id && <span className="pill pill--confirmee">Vous</span>}
                     <div className="muted">{a.email}</div>
                   </td>
-                  <td className="muted">Depuis le {a.createdAt.toLocaleDateString("fr-FR")}</td>
+                  <td className="muted" style={{ whiteSpace: "nowrap" }}>Depuis le {a.createdAt.toLocaleDateString("fr-FR")}</td>
                   <td>
                     {a.id !== me.id && (
                       <div className="row-actions">
-                        <form action={removeAdmin}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <SubmitButton small variant="danger" confirm={`Retirer l'accès de ${a.name} ?`}>
-                            Retirer l&apos;accès
-                          </SubmitButton>
-                        </form>
+                        <ConfirmAction
+                          action={removeAdmin}
+                          fields={{ id: a.id }}
+                          icon="userMinus"
+                          label="Retirer l'accès"
+                          title="Retirer l'accès ?"
+                          message={
+                            <>
+                              <strong>{a.name}</strong> ({a.email}) ne pourra plus se connecter au back-office.
+                            </>
+                          }
+                          confirmLabel="Retirer l'accès"
+                        />
                       </div>
                     )}
                   </td>

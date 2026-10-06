@@ -47,3 +47,9 @@ export type PageProps = { searchParams: Promise<Record<string, string | undefine
 
 /** Cookie temporaire contenant le lien d'invitation quand l'e-mail n'a pas pu partir. */
 export const LINK_COOKIE = "rb_invite_link";
+
+/** Numéro de page à partir de `?page=` (1 par défaut). */
+export const pageParam = (v: string | undefined) => {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 1 ? n : 1;
+};

@@ -9,6 +9,11 @@ import { deleteImage, saveImage } from "@/lib/storage";
 
 const BACK = "/admin/galerie";
 
+const backTo = (fd: FormData) => {
+  const b = str(fd, "back");
+  return b.startsWith(BACK) ? b : BACK;
+};
+
 const category = (fd: FormData) => {
   const c = str(fd, "category") as PhotoCategory;
   return photoCategories.includes(c) ? c : null;
@@ -42,16 +47,16 @@ export async function updatePhoto(fd: FormData) {
   const id = int(fd, "id");
   const cat = category(fd);
   const alt = str(fd, "alt", 150);
-  if (!id || !cat || !alt) fail(BACK, "Légende et catégorie obligatoires.");
+  if (!id || !cat || !alt) fail(backTo(fd), "Légende et catégorie obligatoires.");
   await db.update(schema.photos).set({ alt, category: cat }).where(eq(schema.photos.id, id));
-  done(BACK, "Photo mise à jour.");
+  done(backTo(fd), "Photo mise à jour.");
 }
 
 export async function movePhoto(fd: FormData) {
   await requireAdmin();
   const id = int(fd, "id");
   const dir = str(fd, "dir") === "up" ? -1 : 1;
-  if (!id) fail(BACK, "Requête invalide.");
+  if (!id) fail(backTo(fd), "Requête invalide.");
   await db.transaction(async (tx) => {
     const rows = await tx.select({ id: schema.photos.id }).from(schema.photos).orderBy(asc(schema.photos.position), asc(schema.photos.id));
     const i = rows.findIndex((r) => r.id === id);
@@ -62,14 +67,14 @@ export async function movePhoto(fd: FormData) {
       await tx.update(schema.photos).set({ position }).where(eq(schema.photos.id, row.id));
     }
   });
-  done(BACK, "Ordre mis à jour.");
+  done(backTo(fd), "Ordre mis à jour.");
 }
 
 export async function deletePhoto(fd: FormData) {
   await requireAdmin();
   const id = int(fd, "id");
-  if (!id) fail(BACK, "Requête invalide.");
+  if (!id) fail(backTo(fd), "Requête invalide.");
   const [row] = await db.delete(schema.photos).where(eq(schema.photos.id, id)).returning();
   if (row) await deleteImage(row.src);
-  done(BACK, "Photo retirée de la galerie.");
+  done(backTo(fd), "Photo retirée de la galerie.");
 }

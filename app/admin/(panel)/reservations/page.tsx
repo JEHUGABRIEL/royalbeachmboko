@@ -1,9 +1,13 @@
-import { and, asc, desc, eq, gte, lt, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, lt, type SQL } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
+import IconButton from "@/components/admin/IconButton";
+import Modal, { ModalCancel } from "@/components/admin/Modal";
+import Pagination from "@/components/admin/Pagination";
 import SubmitButton from "@/components/admin/SubmitButton";
-import type { PageProps } from "@/lib/admin";
+import { pageParam, type PageProps } from "@/lib/admin";
 import { db, schema } from "@/lib/db";
 import { reservationStatuses, type ReservationStatus } from "@/lib/db/schema";
 import { todayISO } from "@/lib/queries";
@@ -12,33 +16,46 @@ import { StatusPill, formatDate, statusLabels } from "./ui";
 
 export const metadata: Metadata = { title: "Réservations" };
 
+const PER_PAGE = 20;
+
+const statusActions = {
+  confirmee: { icon: "check", label: "Confirmer", tone: "success" },
+  annulee: { icon: "x", label: "Annuler la réservation", tone: "default" },
+  en_attente: { icon: "clock", label: "Remettre en attente", tone: "default" },
+} as const;
+
 export default async function ReservationsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const statut = reservationStatuses.includes(sp.statut as ReservationStatus) ? (sp.statut as ReservationStatus) : undefined;
   const passees = sp.periode === "passees";
+  const page = pageParam(sp.page);
   const today = todayISO();
 
   const where: SQL[] = [passees ? lt(schema.reservations.date, today) : gte(schema.reservations.date, today)];
   if (statut) where.push(eq(schema.reservations.status, statut));
-  const rows = await db
-    .select()
-    .from(schema.reservations)
-    .where(and(...where))
-    .orderBy(
-      passees ? desc(schema.reservations.date) : asc(schema.reservations.date),
-      asc(schema.reservations.time),
-      desc(schema.reservations.id),
-    )
-    .limit(200);
+  const [[{ total }], rows] = await Promise.all([
+    db.select({ total: count() }).from(schema.reservations).where(and(...where)),
+    db
+      .select()
+      .from(schema.reservations)
+      .where(and(...where))
+      .orderBy(
+        passees ? desc(schema.reservations.date) : asc(schema.reservations.date),
+        asc(schema.reservations.time),
+        desc(schema.reservations.id),
+      )
+      .limit(PER_PAGE)
+      .offset((page - 1) * PER_PAGE),
+  ]);
 
-  const qs = (p: Record<string, string | undefined>) => {
+  const filters = { statut, periode: passees ? "passees" : undefined };
+  const qs = (p: Record<string, string | undefined>, keepPage = false) => {
     const q = new URLSearchParams();
-    const merged = { statut, periode: passees ? "passees" : undefined, ...p };
-    for (const [k, v] of Object.entries(merged)) if (v) q.set(k, v);
+    for (const [k, v] of Object.entries({ ...filters, ...p, page: keepPage && page > 1 ? String(page) : undefined })) if (v) q.set(k, v);
     const s = q.toString();
     return `/admin/reservations${s ? `?${s}` : ""}`;
   };
-  const back = qs({});
+  const back = qs({}, true);
 
   return (
     <>
@@ -80,7 +97,7 @@ export default async function ReservationsPage({ searchParams }: PageProps) {
                   <th>Pers.</th>
                   <th>Détails</th>
                   <th>Statut</th>
-                  <th />
+                  <th className="th-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,18 +124,7 @@ export default async function ReservationsPage({ searchParams }: PageProps) {
                       {r.area && <div className="muted">Espace : {r.area}</div>}
                       {r.occasion && <div className="muted">Occasion : {r.occasion}</div>}
                       {r.notes && <div style={{ fontSize: 13 }}>« {r.notes} »</div>}
-                      {r.adminNote && <div className="muted">📝 {r.adminNote}</div>}
-                      <details className="inline-edit">
-                        <summary>{r.adminNote ? "Modifier la note" : "Ajouter une note interne"}</summary>
-                        <form action={saveReservationNote} style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="back" value={back} />
-                          <input className="inline-input" name="adminNote" defaultValue={r.adminNote ?? ""} />
-                          <SubmitButton small variant="ghost">
-                            OK
-                          </SubmitButton>
-                        </form>
-                      </details>
+                      {r.adminNote && <div className="admin-note">{r.adminNote}</div>}
                       <div className="muted" style={{ marginTop: 4 }}>
                         Reçue le {r.createdAt.toLocaleDateString("fr-FR")}
                       </div>
@@ -135,18 +141,39 @@ export default async function ReservationsPage({ searchParams }: PageProps) {
                               <input type="hidden" name="id" value={r.id} />
                               <input type="hidden" name="back" value={back} />
                               <input type="hidden" name="status" value={s} />
-                              <SubmitButton small variant={s === "confirmee" ? "primary" : "ghost"}>
-                                {s === "confirmee" ? "Confirmer" : s === "annulee" ? "Annuler" : "En attente"}
-                              </SubmitButton>
+                              <IconButton {...statusActions[s]} />
                             </form>
                           ))}
-                        <form action={deleteReservation}>
-                          <input type="hidden" name="id" value={r.id} />
-                          <input type="hidden" name="back" value={back} />
-                          <SubmitButton small variant="danger" confirm="Supprimer définitivement cette réservation ?">
-                            Supprimer
-                          </SubmitButton>
-                        </form>
+                        <Modal
+                          title={`Note interne — ${r.name}`}
+                          trigger={{ kind: "icon", icon: "note", label: r.adminNote ? "Modifier la note" : "Ajouter une note" }}
+                        >
+                          <form action={saveReservationNote} className="aform aform--1">
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="back" value={back} />
+                            <div className="afield">
+                              <label htmlFor={`note-${r.id}`}>Note (visible uniquement dans le back-office)</label>
+                              <textarea id={`note-${r.id}`} name="adminNote" defaultValue={r.adminNote ?? ""} autoFocus />
+                            </div>
+                            <div className="modal__foot">
+                              <ModalCancel />
+                              <SubmitButton>Enregistrer</SubmitButton>
+                            </div>
+                          </form>
+                        </Modal>
+                        <ConfirmAction
+                          action={deleteReservation}
+                          fields={{ id: r.id, back }}
+                          label="Supprimer"
+                          title="Supprimer la réservation ?"
+                          message={
+                            <>
+                              La réservation de <strong>{r.name}</strong> du {formatDate(r.date)} sera définitivement
+                              supprimée.
+                            </>
+                          }
+                          confirmLabel="Supprimer"
+                        />
                       </div>
                     </td>
                   </tr>
@@ -156,6 +183,7 @@ export default async function ReservationsPage({ searchParams }: PageProps) {
           </div>
         )}
       </div>
+      <Pagination page={page} total={total} perPage={PER_PAGE} path="/admin/reservations" params={filters} />
     </>
   );
 }

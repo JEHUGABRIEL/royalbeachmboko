@@ -7,6 +7,11 @@ import { db, schema } from "@/lib/db";
 
 const BACK = "/admin/menu";
 
+const backTo = (fd: FormData) => {
+  const b = str(fd, "back");
+  return b.startsWith("/admin/menu") ? b : BACK;
+};
+
 function readItem(fd: FormData, back: string) {
   const name = str(fd, "name", 120);
   const price = int(fd, "price");
@@ -32,39 +37,39 @@ function readItem(fd: FormData, back: string) {
 
 export async function createItem(fd: FormData) {
   await requireAdmin();
-  const item = readItem(fd, BACK);
+  const item = readItem(fd, backTo(fd));
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(${schema.menuItems.position}), -1)` })
     .from(schema.menuItems)
     .where(eq(schema.menuItems.categoryId, item.categoryId));
   await db.insert(schema.menuItems).values({ ...item, position: Number(max) + 1 });
-  done(BACK, `« ${item.name} » ajouté à la carte.`);
+  done(backTo(fd), `« ${item.name} » ajouté à la carte.`);
 }
 
 export async function updateItem(fd: FormData) {
   await requireAdmin();
   const id = int(fd, "id");
-  if (!id) fail(BACK, "Requête invalide.");
-  const item = readItem(fd, `${BACK}/${id}`);
+  if (!id) fail(backTo(fd), "Requête invalide.");
+  const item = readItem(fd, backTo(fd));
   await db.update(schema.menuItems).set(item).where(eq(schema.menuItems.id, id));
-  done(BACK, `« ${item.name} » mis à jour.`);
+  done(backTo(fd), `« ${item.name} » mis à jour.`);
 }
 
 export async function toggleItem(fd: FormData) {
   await requireAdmin();
   const id = int(fd, "id");
-  if (!id) fail(BACK, "Requête invalide.");
+  if (!id) fail(backTo(fd), "Requête invalide.");
   const available = str(fd, "available") === "1";
   await db.update(schema.menuItems).set({ available }).where(eq(schema.menuItems.id, id));
-  done(BACK, available ? "Plat de nouveau visible sur le site." : "Plat masqué du site.");
+  done(backTo(fd), available ? "Plat de nouveau visible sur le site." : "Plat masqué du site.");
 }
 
 export async function deleteItem(fd: FormData) {
   await requireAdmin();
   const id = int(fd, "id");
-  if (!id) fail(BACK, "Requête invalide.");
+  if (!id) fail(backTo(fd), "Requête invalide.");
   await db.delete(schema.menuItems).where(eq(schema.menuItems.id, id));
-  done(BACK, "Plat supprimé.");
+  done(backTo(fd), "Plat supprimé.");
 }
 
 /** Échange la position d'un plat avec son voisin dans la même catégorie. */
@@ -72,7 +77,7 @@ export async function moveItem(fd: FormData) {
   await requireAdmin();
   const id = int(fd, "id");
   const dir = str(fd, "dir") === "up" ? -1 : 1;
-  if (!id) fail(BACK, "Requête invalide.");
+  if (!id) fail(backTo(fd), "Requête invalide.");
   await db.transaction(async (tx) => {
     const [item] = await tx.select().from(schema.menuItems).where(eq(schema.menuItems.id, id));
     if (!item) return;
@@ -85,7 +90,7 @@ export async function moveItem(fd: FormData) {
       tx.update(schema.menuItems).set({ position }).where(eq(schema.menuItems.id, rowId)),
     );
   });
-  done(BACK, "Ordre mis à jour.");
+  done(backTo(fd), "Ordre mis à jour.");
 }
 
 export async function createCategory(fd: FormData) {

@@ -1,7 +1,9 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import BackToSite from "@/components/admin/BackToSite";
 import Flash from "@/components/admin/Flash";
+import PasswordInput from "@/components/admin/PasswordInput";
 import SubmitButton from "@/components/admin/SubmitButton";
 import Logo from "@/components/Logo";
 import { hashToken } from "@/lib/auth";
@@ -30,6 +32,7 @@ export default async function InvitationPage({ params, searchParams }: Props) {
 
   return (
     <div className="auth">
+      <BackToSite />
       <div className="auth__card">
         <Logo />
         <h1>Créer mon compte</h1>
@@ -55,12 +58,12 @@ export default async function InvitationPage({ params, searchParams }: Props) {
               </div>
               <div className="afield">
                 <label htmlFor="password">Mot de passe</label>
-                <input id="password" name="password" type="password" autoComplete="new-password" required minLength={8} />
+                <PasswordInput id="password" name="password" autoComplete="new-password" required minLength={8} />
                 <small>8 caractères minimum.</small>
               </div>
               <div className="afield">
                 <label htmlFor="confirm">Confirmer le mot de passe</label>
-                <input id="confirm" name="confirm" type="password" autoComplete="new-password" required minLength={8} />
+                <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required minLength={8} />
               </div>
               <SubmitButton>Créer mon compte</SubmitButton>
             </form>

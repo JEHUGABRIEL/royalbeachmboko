@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Flash from "@/components/admin/Flash";
+import PasswordInput from "@/components/admin/PasswordInput";
 import SubmitButton from "@/components/admin/SubmitButton";
 import type { PageProps } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
@@ -40,15 +41,15 @@ export default async function AccountPage({ searchParams }: PageProps) {
         <form action={changePassword} className="aform aform--3">
           <div className="afield">
             <label>Mot de passe actuel</label>
-            <input name="current" type="password" autoComplete="current-password" required />
+            <PasswordInput name="current" autoComplete="current-password" required />
           </div>
           <div className="afield">
             <label>Nouveau mot de passe</label>
-            <input name="password" type="password" autoComplete="new-password" required minLength={8} />
+            <PasswordInput name="password" autoComplete="new-password" required minLength={8} />
           </div>
           <div className="afield">
             <label>Confirmer</label>
-            <input name="confirm" type="password" autoComplete="new-password" required minLength={8} />
+            <PasswordInput name="confirm" autoComplete="new-password" required minLength={8} />
           </div>
           <div className="form-foot">
             <SubmitButton>Changer le mot de passe</SubmitButton>
