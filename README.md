@@ -16,6 +16,14 @@ Site du restaurant (Next.js 16) avec back-office sur `/admin`.
 - `npm run build` applique les migrations (`drizzle/`) et remplit une base vide avec le contenu initial (`scripts/seed-data.ts`).
 - Après une modification de `lib/db/schema.ts` : `npm run db:generate`.
 
+## Images
+
+Les photos de la galerie et des événements sont sur Cloudinary. Pour transférer celles du contenu initial (`/images/...`) après la création d'une nouvelle base :
+
+```bash
+npx tsx --env-file=.env.local scripts/images-to-cloudinary.ts
+```
+
 ## Premier administrateur
 
 ```bash
