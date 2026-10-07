@@ -11,12 +11,14 @@ import { todayISO } from "@/lib/queries";
 import { formatDate } from "../reservations/ui";
 import { deleteEvent, saveEvent } from "./actions";
 import EventFields from "./EventFields";
+import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Événements" };
 
 const PER_PAGE = 10;
 
 export default async function EventsAdminPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const sp = await searchParams;
   const page = pageParam(sp.page);
   const today = todayISO();

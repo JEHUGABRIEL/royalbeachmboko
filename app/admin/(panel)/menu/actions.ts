@@ -4,6 +4,7 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { done, fail, int, slugify, str } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { MAX_PRICE } from "@/lib/validation";
 
 const BACK = "/admin/menu";
 
@@ -18,8 +19,8 @@ function readItem(fd: FormData, back: string) {
   const oldPrice = int(fd, "oldPrice");
   const categoryId = int(fd, "categoryId");
   if (!name) fail(back, "Le nom du plat est obligatoire.");
-  if (price === null || Number.isNaN(price)) fail(back, "Prix invalide (nombre entier en FCFA).");
-  if (Number.isNaN(oldPrice)) fail(back, "Ancien prix invalide.");
+  if (price === null || Number.isNaN(price) || price > MAX_PRICE) fail(back, "Prix invalide (nombre entier en FCFA).");
+  if (Number.isNaN(oldPrice) || (oldPrice !== null && oldPrice > MAX_PRICE)) fail(back, "Ancien prix invalide.");
   if (!categoryId) fail(back, "Catégorie invalide.");
   return {
     name,
@@ -35,9 +36,15 @@ function readItem(fd: FormData, back: string) {
   };
 }
 
+async function assertCategory(id: number, back: string) {
+  const [cat] = await db.select({ id: schema.menuCategories.id }).from(schema.menuCategories).where(eq(schema.menuCategories.id, id));
+  if (!cat) fail(back, "Catégorie introuvable.");
+}
+
 export async function createItem(fd: FormData) {
   await requireAdmin();
   const item = readItem(fd, backTo(fd));
+  await assertCategory(item.categoryId, backTo(fd));
   const [{ max }] = await db
     .select({ max: sql<number>`coalesce(max(${schema.menuItems.position}), -1)` })
     .from(schema.menuItems)
@@ -51,6 +58,7 @@ export async function updateItem(fd: FormData) {
   const id = int(fd, "id");
   if (!id) fail(backTo(fd), "Requête invalide.");
   const item = readItem(fd, backTo(fd));
+  await assertCategory(item.categoryId, backTo(fd));
   await db.update(schema.menuItems).set(item).where(eq(schema.menuItems.id, id));
   done(backTo(fd), `« ${item.name} » mis à jour.`);
 }

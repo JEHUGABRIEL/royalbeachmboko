@@ -23,10 +23,21 @@ function sign(params: Record<string, string>, secret: string) {
   return createHash("sha1").update(payload + secret).digest("hex");
 }
 
+/** Vérifie la signature binaire du fichier : le type annoncé par le navigateur ne suffit pas. */
+async function looksLike(file: File) {
+  const b = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const at = (i: number, bytes: number[]) => bytes.every((v, k) => b[i + k] === v);
+  if (file.type === "image/jpeg") return at(0, [0xff, 0xd8, 0xff]);
+  if (file.type === "image/png") return at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (file.type === "image/webp") return at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50]);
+  return false;
+}
+
 /** Enregistre une image envoyée depuis le back-office et renvoie son URL publique. */
 export async function saveImage(file: File, folder: string): Promise<string> {
   if (!TYPES.includes(file.type)) throw new Error("Format accepté : JPEG, PNG ou WebP.");
   if (file.size > MAX_BYTES) throw new Error("Image trop lourde (4 Mo maximum).");
+  if (!(await looksLike(file))) throw new Error("Le fichier n'est pas une image valide.");
 
   const cfg = cloudinary();
   if (cfg) {

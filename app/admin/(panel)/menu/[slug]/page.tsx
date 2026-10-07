@@ -12,6 +12,7 @@ import { formatPrice } from "@/lib/data";
 import { db, schema } from "@/lib/db";
 import { createItem, deleteItem, moveItem, toggleItem, updateItem } from "../actions";
 import ItemFields from "../ItemFields";
+import { requireAdmin } from "@/lib/auth";
 
 const PER_PAGE = 15;
 
@@ -27,6 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CategoryItemsPage({ params, searchParams }: Props) {
+  await requireAdmin();
   const { slug } = await params;
   const sp = await searchParams;
   const page = pageParam(sp.page);

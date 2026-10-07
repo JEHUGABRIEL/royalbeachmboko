@@ -4,6 +4,7 @@ import { done, fail, str } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import type { SiteSettings } from "@/lib/db/schema";
+import { optionalEmail, phone } from "@/lib/validation";
 
 const BACK = "/admin/parametres";
 
@@ -34,6 +35,12 @@ export async function saveSettings(fd: FormData) {
     hours,
   };
   if (!value.phone || !value.address) fail(BACK, "Téléphone et adresse sont obligatoires.");
+  if (!phone.safeParse(value.phone).success) fail(BACK, "Numéro de téléphone invalide.");
+  if (value.whatsapp && !phone.safeParse(value.whatsapp).success) fail(BACK, "Numéro WhatsApp invalide.");
+  if (!optionalEmail.safeParse(value.email).success) fail(BACK, "Adresse e-mail invalide.");
+  for (const link of [value.facebook, value.instagram]) {
+    if (link && !URL.canParse(link)) fail(BACK, "Lien de réseau social invalide.");
+  }
   if (hours.length === 0) fail(BACK, "Indiquez au moins un groupe d'horaires.");
   await db
     .insert(schema.settings)

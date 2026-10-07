@@ -1,5 +1,6 @@
 // Applique les migrations puis, si la base est vide, charge le contenu initial.
 // Lancé automatiquement avant chaque build (npm run build).
+import { existsSync } from "node:fs";
 import { count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -8,6 +9,8 @@ import * as schema from "../lib/db/schema";
 import * as seed from "./seed-data";
 
 async function main() {
+  // En local, `npm run build` ne charge pas .env.local : on le lit ici s'il existe.
+  if (!process.env.DATABASE_URL && existsSync(".env.local")) process.loadEnvFile(".env.local");
   const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (!url) {
     console.warn("[migrate] DATABASE_URL absent — migrations ignorées.");

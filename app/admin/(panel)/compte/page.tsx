@@ -45,11 +45,11 @@ export default async function AccountPage({ searchParams }: PageProps) {
           </div>
           <div className="afield">
             <label>Nouveau mot de passe</label>
-            <PasswordInput name="password" autoComplete="new-password" required minLength={8} />
+            <PasswordInput name="password" autoComplete="new-password" required minLength={12} />
           </div>
           <div className="afield">
             <label>Confirmer</label>
-            <PasswordInput name="confirm" autoComplete="new-password" required minLength={8} />
+            <PasswordInput name="confirm" autoComplete="new-password" required minLength={12} />
           </div>
           <div className="form-foot">
             <SubmitButton>Changer le mot de passe</SubmitButton>

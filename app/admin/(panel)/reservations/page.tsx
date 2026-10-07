@@ -13,6 +13,7 @@ import { reservationStatuses, type ReservationStatus } from "@/lib/db/schema";
 import { todayISO } from "@/lib/queries";
 import { deleteReservation, saveReservationNote, setReservationStatus } from "./actions";
 import { StatusPill, formatDate, statusLabels } from "./ui";
+import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Réservations" };
 
@@ -25,6 +26,7 @@ const statusActions = {
 } as const;
 
 export default async function ReservationsPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const sp = await searchParams;
   const statut = reservationStatuses.includes(sp.statut as ReservationStatus) ? (sp.statut as ReservationStatus) : undefined;
   const passees = sp.periode === "passees";

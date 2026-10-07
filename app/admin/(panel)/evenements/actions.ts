@@ -5,6 +5,7 @@ import { done, fail, int, slugify, str } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { deleteImage, saveImage } from "@/lib/storage";
+import { isoDate } from "@/lib/validation";
 
 const BACK = "/admin/evenements";
 
@@ -21,9 +22,8 @@ export async function saveEvent(fd: FormData) {
   const date = str(fd, "date", 10);
   const time = str(fd, "time", 60);
   const place = str(fd, "place", 120);
-  if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !time || !place) {
-    fail(back, "Titre, date, horaires et lieu sont obligatoires.");
-  }
+  if (!title || !time || !place) fail(back, "Titre, date, horaires et lieu sont obligatoires.");
+  if (!isoDate.safeParse(date).success) fail(back, "Date invalide.");
 
   const [current] = id ? await db.select().from(schema.events).where(eq(schema.events.id, id)) : [];
   if (id && !current) fail(BACK, "Événement introuvable.");

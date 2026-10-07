@@ -58,12 +58,12 @@ export default async function InvitationPage({ params, searchParams }: Props) {
               </div>
               <div className="afield">
                 <label htmlFor="password">Mot de passe</label>
-                <PasswordInput id="password" name="password" autoComplete="new-password" required minLength={8} />
-                <small>8 caractères minimum.</small>
+                <PasswordInput id="password" name="password" autoComplete="new-password" required minLength={12} />
+                <small>12 caractères minimum, évitez les mots de passe courants.</small>
               </div>
               <div className="afield">
                 <label htmlFor="confirm">Confirmer le mot de passe</label>
-                <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required minLength={8} />
+                <PasswordInput id="confirm" name="confirm" autoComplete="new-password" required minLength={12} />
               </div>
               <SubmitButton>Créer mon compte</SubmitButton>
             </form>

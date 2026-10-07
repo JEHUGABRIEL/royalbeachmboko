@@ -5,8 +5,10 @@ import type { PageProps } from "@/lib/admin";
 import { db, schema } from "@/lib/db";
 import { todayISO } from "@/lib/queries";
 import { StatusPill, formatDate } from "./reservations/ui";
+import { requireAdmin } from "@/lib/auth";
 
 export default async function Dashboard({ searchParams }: PageProps) {
+  await requireAdmin();
   const { ok } = await searchParams;
   const today = todayISO();
   const [[pending], [todayCount], [unread], [upcomingEvents], next] = await Promise.all([

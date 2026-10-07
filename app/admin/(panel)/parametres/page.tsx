@@ -4,10 +4,12 @@ import SubmitButton from "@/components/admin/SubmitButton";
 import type { PageProps } from "@/lib/admin";
 import { getSettings } from "@/lib/queries";
 import { saveSettings } from "./actions";
+import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Infos & horaires" };
 
 export default async function SettingsPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const sp = await searchParams;
   const s = await getSettings();
   const groups = [...s.hours, ...Array(Math.max(0, 4 - s.hours.length)).fill({ days: "", slots: [] })].slice(0, 4);

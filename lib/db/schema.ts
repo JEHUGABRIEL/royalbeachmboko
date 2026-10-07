@@ -121,3 +121,10 @@ export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").$type<SiteSettings>().notNull(),
 });
+
+/** Compteurs de limitation d'appels (connexion, formulaires publics, invitations). */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+});
