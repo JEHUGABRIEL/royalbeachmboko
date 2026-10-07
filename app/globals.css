@@ -1623,3 +1623,150 @@ textarea {
 .contact-form .section-title__main {
   color: var(--dark);
 }
+
+/* ---------- Chargement ---------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.loader {
+  display: grid;
+  place-items: center;
+  color: var(--white);
+}
+
+.loader--page {
+  min-height: 100vh;
+  background: var(--dark);
+}
+
+.loader--admin {
+  min-height: 60vh;
+  color: var(--dark);
+}
+
+.loader__mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: loaderIn 0.6s ease both;
+}
+
+.loader__script {
+  font-family: var(--font-script);
+  font-size: 54px;
+  line-height: 1;
+}
+
+.loader__sub {
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 0.6em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-left: 0.6em;
+}
+
+.loader__waves {
+  width: 120px;
+  height: 24px;
+  margin-top: 14px;
+  overflow: visible;
+}
+
+.loader__wave {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 40 140;
+  animation: loaderWave 1.8s linear infinite;
+}
+
+.loader__wave--2 {
+  opacity: 0.5;
+  animation-delay: -0.9s;
+}
+
+.loader__bar {
+  position: relative;
+  width: 140px;
+  height: 1px;
+  margin-top: 18px;
+  overflow: hidden;
+  background: rgba(195, 154, 95, 0.25);
+}
+
+.loader__bar span {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: var(--gold);
+  animation: loaderBar 1.4s ease-in-out infinite;
+}
+
+.loader--admin .loader__script {
+  font-size: 40px;
+}
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 40%, #262626 0%, var(--dark) 70%);
+  transition: opacity 0.6s ease, visibility 0.6s;
+  /* Filet de sécurité sans JavaScript : disparaît de lui-même. */
+  animation: splashFallback 0.6s ease 6s forwards;
+}
+
+.splash--leaving {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@keyframes loaderIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes loaderWave {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+@keyframes loaderBar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes splashFallback {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader__wave,
+  .loader__bar span {
+    animation: none;
+  }
+
+  .loader__wave {
+    stroke-dasharray: none;
+  }
+}
