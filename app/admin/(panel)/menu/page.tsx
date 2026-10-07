@@ -9,10 +9,12 @@ import SubmitButton from "@/components/admin/SubmitButton";
 import type { PageProps } from "@/lib/admin";
 import { db, schema } from "@/lib/db";
 import { createCategory, deleteCategory, moveCategory, renameCategory } from "./actions";
+import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Catégories du menu" };
 
 export default async function CategoriesPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const sp = await searchParams;
   const cats = await db
     .select({

@@ -6,6 +6,7 @@ import { LINK_COOKIE, done, fail, int, str } from "@/lib/admin";
 import { hashToken, newToken, requireAdmin, type CurrentAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { invitationEmail, sendMail } from "@/lib/mail";
+import { hitLimit, tooMany } from "@/lib/rate-limit";
 
 const BACK = "/admin/admins";
 const INVITE_DAYS = 7;
@@ -20,6 +21,9 @@ async function siteOrigin() {
 
 /** Génère un nouveau jeton, l'enregistre et envoie l'e-mail. Si l'envoi échoue, le lien est proposé à copier. */
 async function issueInvitation(email: string, inviter: CurrentAdmin, existingId?: number) {
+  // Évite l'envoi massif d'e-mails : 10 invitations par administrateur et par heure.
+  const { limited, retryMinutes } = await hitLimit(`invite:${inviter.id}`, 10, 60 * 60);
+  if (limited) fail(BACK, tooMany(retryMinutes));
   const token = newToken();
   const values = { tokenHash: hashToken(token), expiresAt: new Date(Date.now() + INVITE_DAYS * 86_400_000) };
   if (existingId) {

@@ -7,12 +7,14 @@ import Pagination from "@/components/admin/Pagination";
 import { pageParam, type PageProps } from "@/lib/admin";
 import { db, schema } from "@/lib/db";
 import { deleteMessage, toggleMessageRead } from "./actions";
+import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Messages" };
 
 const PER_PAGE = 10;
 
 export default async function MessagesPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const sp = await searchParams;
   const page = pageParam(sp.page);
   const [[{ total }], rows] = await Promise.all([

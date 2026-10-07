@@ -12,12 +12,14 @@ import { pageParam, type PageProps } from "@/lib/admin";
 import { db, schema } from "@/lib/db";
 import { photoCategories } from "@/lib/db/schema";
 import { addPhotos, deletePhoto, movePhoto, updatePhoto } from "./actions";
+import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Galerie" };
 
 const PER_PAGE = 24;
 
 export default async function GalleryAdminPage({ searchParams }: PageProps) {
+  await requireAdmin();
   const sp = await searchParams;
   const page = pageParam(sp.page);
   const [[{ total }], rows] = await Promise.all([

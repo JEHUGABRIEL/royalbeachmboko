@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { done, fail, str } from "@/lib/admin";
 import { hashPassword, hashToken, requireAdmin, verifyPassword } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
+import { hitLimit, tooMany } from "@/lib/rate-limit";
+import { passwordProblem } from "@/lib/validation";
 
 const BACK = "/admin/compte";
 
@@ -20,7 +22,10 @@ export async function changePassword(fd: FormData) {
   const me = await requireAdmin();
   const current = str(fd, "current", 200);
   const next = str(fd, "password", 200);
-  if (next.length < 8) fail(BACK, "Le nouveau mot de passe doit contenir au moins 8 caractères.");
+  const { limited, retryMinutes } = await hitLimit(`password:${me.id}`, 5, 15 * 60);
+  if (limited) fail(BACK, tooMany(retryMinutes));
+  const weak = passwordProblem(next, { email: me.email, name: me.name });
+  if (weak) fail(BACK, weak);
   if (next !== str(fd, "confirm", 200)) fail(BACK, "Les deux mots de passe ne correspondent pas.");
   const [row] = await db.select().from(schema.admins).where(eq(schema.admins.id, me.id));
   if (!row || !(await verifyPassword(current, row.passwordHash))) fail(BACK, "Mot de passe actuel incorrect.");

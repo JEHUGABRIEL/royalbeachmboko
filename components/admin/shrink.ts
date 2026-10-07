@@ -3,7 +3,12 @@ const MAX_SIDE = 1800;
 /** Redimensionne l'image côté navigateur (photos de téléphone souvent > 5 Mo) avant l'envoi. */
 export async function shrink(file: File): Promise<File> {
   if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
-  const bitmap = await createImageBitmap(file);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    return file; // Fichier illisible : le serveur le refusera avec un message clair.
+  }
   const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
   if (scale === 1 && file.size < 1_500_000) return file;
   const canvas = document.createElement("canvas");
