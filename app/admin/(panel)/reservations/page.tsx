@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, gte, lt, type SQL } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import ActionMenu from "@/components/admin/ActionMenu";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
 import IconButton from "@/components/admin/IconButton";
@@ -134,8 +135,8 @@ export default async function ReservationsPage({ searchParams }: PageProps) {
                     <td>
                       <StatusPill status={r.status} />
                     </td>
-                    <td>
-                      <div className="row-actions">
+                    <td className="td-actions">
+                      <ActionMenu>
                         {(["confirmee", "annulee", "en_attente"] as const)
                           .filter((s) => s !== r.status)
                           .map((s) => (
@@ -176,7 +177,7 @@ export default async function ReservationsPage({ searchParams }: PageProps) {
                           }
                           confirmLabel="Supprimer"
                         />
-                      </div>
+                      </ActionMenu>
                     </td>
                   </tr>
                 ))}

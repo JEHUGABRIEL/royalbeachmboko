@@ -1,6 +1,7 @@
 import { asc, count, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
+import ActionMenu from "@/components/admin/ActionMenu";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
 import IconButton from "@/components/admin/IconButton";
@@ -72,17 +73,17 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
                       </Link>
                     </td>
                     <td>{c.items}</td>
-                    <td>
-                      <div className="row-actions">
+                    <td className="td-actions">
+                      <ActionMenu>
                         <form action={moveCategory}>
                           <input type="hidden" name="id" value={c.id} />
                           <input type="hidden" name="dir" value="up" />
-                          {i > 0 ? <IconButton icon="up" label="Monter" /> : <span className="ibtn-spacer" />}
+                          {i > 0 ? <IconButton icon="up" label="Monter" /> : null}
                         </form>
                         <form action={moveCategory}>
                           <input type="hidden" name="id" value={c.id} />
                           <input type="hidden" name="dir" value="down" />
-                          {i < cats.length - 1 ? <IconButton icon="down" label="Descendre" /> : <span className="ibtn-spacer" />}
+                          {i < cats.length - 1 ? <IconButton icon="down" label="Descendre" /> : null}
                         </form>
                         <Modal title="Renommer la catégorie" trigger={{ kind: "icon", icon: "edit", label: "Renommer" }}>
                           <form action={renameCategory} className="aform aform--1">
@@ -110,7 +111,7 @@ export default async function CategoriesPage({ searchParams }: PageProps) {
                           }
                           confirmLabel="Supprimer"
                         />
-                      </div>
+                      </ActionMenu>
                     </td>
                   </tr>
                 ))}

@@ -1,6 +1,7 @@
 import { asc, count, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import ActionMenu from "@/components/admin/ActionMenu";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
 import IconButton from "@/components/admin/IconButton";
@@ -114,19 +115,19 @@ export default async function CategoryItemsPage({ params, searchParams }: Props)
                           <span className="pill pill--off">Masqué</span>
                         )}
                       </td>
-                      <td>
-                        <div className="row-actions">
+                      <td className="td-actions">
+                        <ActionMenu>
                           <form action={moveItem}>
                             <input type="hidden" name="id" value={it.id} />
                             <input type="hidden" name="dir" value="up" />
                             <input type="hidden" name="back" value={back} />
-                            {index > 0 ? <IconButton icon="up" label="Monter" /> : <span className="ibtn-spacer" />}
+                            {index > 0 ? <IconButton icon="up" label="Monter" /> : null}
                           </form>
                           <form action={moveItem}>
                             <input type="hidden" name="id" value={it.id} />
                             <input type="hidden" name="dir" value="down" />
                             <input type="hidden" name="back" value={back} />
-                            {index < total - 1 ? <IconButton icon="down" label="Descendre" /> : <span className="ibtn-spacer" />}
+                            {index < total - 1 ? <IconButton icon="down" label="Descendre" /> : null}
                           </form>
                           <Modal title={`Modifier « ${it.name} »`} trigger={{ kind: "icon", icon: "edit", label: "Modifier" }} wide>
                             <form action={updateItem} className="aform">
@@ -158,7 +159,7 @@ export default async function CategoryItemsPage({ params, searchParams }: Props)
                             }
                             confirmLabel="Supprimer"
                           />
-                        </div>
+                        </ActionMenu>
                       </td>
                     </tr>
                   );

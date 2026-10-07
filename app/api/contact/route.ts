@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { logActivity } from "@/lib/activity";
 import { db, schema } from "@/lib/db";
 import { clientIp, hitLimit, tooMany } from "@/lib/rate-limit";
 import { contactSchema, firstError } from "@/lib/validation";
@@ -15,5 +16,12 @@ export async function POST(req: Request) {
 
   await db.insert(schema.messages).values({ name: m.name, contact: m.contact, subject: m.subject, message: m.message });
   revalidatePath("/admin", "layout");
+  await logActivity({
+    actorName: m.name,
+    action: "message.nouveau",
+    category: "message",
+    summary: `Nouveau message de ${m.name} (${m.subject})`,
+    link: "/admin/messages",
+  });
   return NextResponse.json({ message: `Merci ${m.name}, votre message a bien été reçu. Nous vous répondons rapidement.` });
 }

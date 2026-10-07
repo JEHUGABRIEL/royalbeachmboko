@@ -24,6 +24,7 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Le jeton d'invitation est dans l'URL : ne jamais le transmettre en Referer.
       { source: "/invitation/:token*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
+      { source: "/reinitialisation/:token*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] },
       { source: "/admin/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
     ];
   },

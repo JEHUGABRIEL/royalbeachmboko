@@ -1,10 +1,19 @@
 import { boolean, date, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+export const adminRoles = ["superadmin", "admin"] as const;
+export type AdminRole = (typeof adminRoles)[number];
+
+/** Compte superadmin : promu à chaque déploiement et dès l'acceptation de son invitation. */
+export const SUPERADMIN_EMAIL = (process.env.SUPERADMIN_EMAIL ?? "jehubin@gmail.com").toLowerCase();
+export const roleFor = (email: string): AdminRole => (email.toLowerCase() === SUPERADMIN_EMAIL ? "superadmin" : "admin");
+
 export const admins = pgTable("admins", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
+  role: text("role").$type<AdminRole>().notNull().default("admin"),
+  avatar: text("avatar"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -128,3 +137,50 @@ export const rateLimits = pgTable("rate_limits", {
   count: integer("count").notNull().default(0),
   resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
 });
+
+export const resetStatuses = ["en_attente", "acceptee", "refusee", "utilisee"] as const;
+export type ResetStatus = (typeof resetStatuses)[number];
+
+/** Demandes de réinitialisation de mot de passe, validées par un autre administrateur. */
+export const passwordResets = pgTable("password_resets", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id")
+    .notNull()
+    .references(() => admins.id, { onDelete: "cascade" }),
+  status: text("status").$type<ResetStatus>().notNull().default("en_attente"),
+  origin: text("origin").$type<"connexion" | "compte">().notNull(),
+  tokenHash: text("token_hash").unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  decidedBy: integer("decided_by").references(() => admins.id, { onDelete: "set null" }),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Journal de tout ce qui se passe sur le site et dans le back-office. */
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
+  actorId: integer("actor_id").references(() => admins.id, { onDelete: "set null" }),
+  actorName: text("actor_name").notNull(),
+  action: text("action").notNull(),
+  category: text("category").notNull(),
+  summary: text("summary").notNull(),
+  link: text("link"),
+  ip: text("ip"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Une notification par administrateur et par activité. */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: serial("id").primaryKey(),
+    adminId: integer("admin_id")
+      .notNull()
+      .references(() => admins.id, { onDelete: "cascade" }),
+    activityId: integer("activity_id")
+      .notNull()
+      .references(() => activities.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("notifications_admin_activity_idx").on(t.adminId, t.activityId)],
+);

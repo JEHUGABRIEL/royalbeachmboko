@@ -1,6 +1,7 @@
 "use server";
 
 import { done, fail, str } from "@/lib/admin";
+import { logActivity } from "@/lib/activity";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import type { SiteSettings } from "@/lib/db/schema";
@@ -14,7 +15,7 @@ const url = (v: string) => {
 };
 
 export async function saveSettings(fd: FormData) {
-  await requireAdmin();
+  const me = await requireAdmin();
   const hours: SiteSettings["hours"] = [];
   for (let i = 0; i < 4; i++) {
     const days = str(fd, `days_${i}`, 60);
@@ -46,5 +47,6 @@ export async function saveSettings(fd: FormData) {
     .insert(schema.settings)
     .values({ key: "site", value })
     .onConflictDoUpdate({ target: schema.settings.key, set: { value } });
+  await logActivity({ actor: me, action: "parametres.modification", category: "parametres", summary: "a modifié les coordonnées et horaires du site", link: BACK });
   done(BACK, "Informations mises à jour sur tout le site.");
 }

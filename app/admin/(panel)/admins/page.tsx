@@ -1,8 +1,11 @@
-import { asc, eq, isNull } from "drizzle-orm";
+import { asc, desc, eq, isNull } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import CopyLink from "@/components/admin/CopyLink";
+import ActionMenu from "@/components/admin/ActionMenu";
+import Avatar from "@/components/admin/Avatar";
 import ConfirmAction from "@/components/admin/ConfirmAction";
+import CopyLink from "@/components/admin/CopyLink";
 import Flash from "@/components/admin/Flash";
 import IconButton from "@/components/admin/IconButton";
 import Modal, { ModalCancel } from "@/components/admin/Modal";
@@ -10,14 +13,23 @@ import SubmitButton from "@/components/admin/SubmitButton";
 import { LINK_COOKIE, type PageProps } from "@/lib/admin";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
-import { cancelInvitation, inviteAdmin, removeAdmin, resendInvitation } from "./actions";
+import { approveReset, cancelInvitation, inviteAdmin, refuseReset, removeAdmin, resendInvitation } from "./actions";
 
 export const metadata: Metadata = { title: "Administrateurs" };
+
+const decider = alias(schema.admins, "decider");
+
+const resetLabels = {
+  en_attente: { text: "En attente", pill: "en_attente" },
+  acceptee: { text: "Validée — lien envoyé", pill: "confirmee" },
+  refusee: { text: "Refusée", pill: "annulee" },
+  utilisee: { text: "Terminée", pill: "off" },
+} as const;
 
 export default async function AdminsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const me = await requireAdmin();
-  const [admins, invites] = await Promise.all([
+  const [admins, invites, resets] = await Promise.all([
     db.select().from(schema.admins).orderBy(asc(schema.admins.createdAt)),
     db
       .select({
@@ -30,22 +42,42 @@ export default async function AdminsPage({ searchParams }: PageProps) {
       .leftJoin(schema.admins, eq(schema.admins.id, schema.invitations.invitedBy))
       .where(isNull(schema.invitations.acceptedAt))
       .orderBy(asc(schema.invitations.createdAt)),
+    db
+      .select({
+        id: schema.passwordResets.id,
+        status: schema.passwordResets.status,
+        origin: schema.passwordResets.origin,
+        createdAt: schema.passwordResets.createdAt,
+        decidedAt: schema.passwordResets.decidedAt,
+        adminId: schema.admins.id,
+        name: schema.admins.name,
+        email: schema.admins.email,
+        avatar: schema.admins.avatar,
+        decidedBy: decider.name,
+      })
+      .from(schema.passwordResets)
+      .innerJoin(schema.admins, eq(schema.admins.id, schema.passwordResets.adminId))
+      .leftJoin(decider, eq(decider.id, schema.passwordResets.decidedBy))
+      .orderBy(desc(schema.passwordResets.createdAt))
+      .limit(10),
   ]);
 
-  let manual: { email: string; link: string } | null = null;
+  let manual: { kind?: "invitation" | "reinitialisation"; email: string; link: string } | null = null;
   try {
     const raw = (await cookies()).get(LINK_COOKIE)?.value;
     manual = raw ? JSON.parse(raw) : null;
   } catch {}
 
   const now = new Date();
+  const isSuper = me.role === "superadmin";
+  const pendingResets = resets.filter((r) => r.status === "en_attente").length;
 
   return (
     <>
       <div className="admin-head">
         <div>
           <h1>Administrateurs</h1>
-          <p>Personnes ayant accès au back-office.</p>
+          <p>Personnes ayant accès au back-office, invitations et demandes de réinitialisation.</p>
         </div>
         <Modal title="Inviter un administrateur" trigger={{ kind: "button", label: "Inviter", icon: "plus" }}>
           <form action={inviteAdmin} className="aform aform--1">
@@ -64,11 +96,95 @@ export default async function AdminsPage({ searchParams }: PageProps) {
       <Flash ok={sp.ok} error={sp.error} />
       {manual && sp.ok && (
         <div className="acard">
-          <strong>Lien d&apos;invitation pour {manual.email}</strong>
-          <div className="muted">À envoyer par WhatsApp ou SMS. Valable 7 jours, utilisable une seule fois.</div>
+          <strong>
+            {manual.kind === "reinitialisation" ? "Lien de réinitialisation" : "Lien d'invitation"} pour {manual.email}
+          </strong>
+          <div className="muted">
+            À envoyer par WhatsApp ou SMS. Utilisable une seule fois, valable{" "}
+            {manual.kind === "reinitialisation" ? "24 heures" : "7 jours"}.
+          </div>
           <CopyLink link={manual.link} />
         </div>
       )}
+
+      <div className="acard acard--flush" id="reinitialisations">
+        <div className="cat-head">
+          <h2>
+            Demandes de réinitialisation {pendingResets > 0 && <span className="pill pill--en_attente">{pendingResets} en attente</span>}
+          </h2>
+        </div>
+        {resets.length === 0 ? (
+          <div className="empty">Aucune demande de réinitialisation.</div>
+        ) : (
+          <div className="table-wrap">
+            <table className="atable">
+              <thead>
+                <tr>
+                  <th>Administrateur</th>
+                  <th>Origine</th>
+                  <th>Statut</th>
+                  <th className="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resets.map((r) => {
+                  const label = resetLabels[r.status];
+                  const own = r.adminId === me.id;
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <div className="who">
+                          <Avatar name={r.name} src={r.avatar} />
+                          <div>
+                            <strong>{r.name}</strong>
+                            <div className="muted">{r.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {r.origin === "connexion" ? "Mot de passe oublié" : "Depuis Mon compte"}
+                        <div className="muted">
+                          {r.createdAt.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`pill pill--${label.pill}`}>{label.text}</span>
+                        {r.decidedBy && <div className="muted">par {r.decidedBy}</div>}
+                      </td>
+                      <td className="td-actions">
+                        {r.status === "en_attente" &&
+                          (own ? (
+                            <span className="muted">À valider par un autre administrateur</span>
+                          ) : (
+                            <ActionMenu>
+                              <form action={approveReset}>
+                                <input type="hidden" name="id" value={r.id} />
+                                <IconButton icon="check" label="Accepter et envoyer le lien" tone="success" />
+                              </form>
+                              <ConfirmAction
+                                action={refuseReset}
+                                fields={{ id: r.id }}
+                                icon="x"
+                                label="Refuser"
+                                title="Refuser la demande ?"
+                                message={
+                                  <>
+                                    <strong>{r.name}</strong> ne recevra pas de lien de réinitialisation.
+                                  </>
+                                }
+                                confirmLabel="Refuser"
+                              />
+                            </ActionMenu>
+                          ))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {invites.length > 0 && (
         <div className="acard acard--flush">
@@ -89,8 +205,8 @@ export default async function AdminsPage({ searchParams }: PageProps) {
                           {expired ? "Expirée" : `Expire le ${inv.expiresAt.toLocaleDateString("fr-FR")}`}
                         </div>
                       </td>
-                      <td>
-                        <div className="row-actions">
+                      <td className="td-actions">
+                        <ActionMenu>
                           <form action={resendInvitation}>
                             <input type="hidden" name="id" value={inv.id} />
                             <IconButton icon="refresh" label="Renvoyer l'invitation" />
@@ -108,7 +224,7 @@ export default async function AdminsPage({ searchParams }: PageProps) {
                             }
                             confirmLabel="Annuler l'invitation"
                           />
-                        </div>
+                        </ActionMenu>
                       </td>
                     </tr>
                   );
@@ -129,13 +245,25 @@ export default async function AdminsPage({ searchParams }: PageProps) {
               {admins.map((a) => (
                 <tr key={a.id}>
                   <td>
-                    <strong>{a.name}</strong> {a.id === me.id && <span className="pill pill--confirmee">Vous</span>}
-                    <div className="muted">{a.email}</div>
+                    <div className="who">
+                      <Avatar name={a.name} src={a.avatar} size={36} />
+                      <div>
+                        <strong>{a.name}</strong> {a.id === me.id && <span className="pill pill--confirmee">Vous</span>}
+                        <div className="muted">{a.email}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td className="muted" style={{ whiteSpace: "nowrap" }}>Depuis le {a.createdAt.toLocaleDateString("fr-FR")}</td>
                   <td>
-                    {a.id !== me.id && (
-                      <div className="row-actions">
+                    <span className={`pill ${a.role === "superadmin" ? "pill--super" : "pill--off"}`}>
+                      {a.role === "superadmin" ? "Superadmin" : "Administrateur"}
+                    </span>
+                  </td>
+                  <td className="muted" style={{ whiteSpace: "nowrap" }}>
+                    Depuis le {a.createdAt.toLocaleDateString("fr-FR")}
+                  </td>
+                  <td className="td-actions">
+                    {isSuper && a.id !== me.id && a.role !== "superadmin" && (
+                      <ActionMenu>
                         <ConfirmAction
                           action={removeAdmin}
                           fields={{ id: a.id }}
@@ -149,7 +277,7 @@ export default async function AdminsPage({ searchParams }: PageProps) {
                           }
                           confirmLabel="Retirer l'accès"
                         />
-                      </div>
+                      </ActionMenu>
                     )}
                   </td>
                 </tr>
@@ -157,6 +285,7 @@ export default async function AdminsPage({ searchParams }: PageProps) {
             </tbody>
           </table>
         </div>
+        {!isSuper && <p className="muted" style={{ padding: "0 20px 16px" }}>Seul le superadmin peut retirer un accès.</p>}
       </div>
     </>
   );

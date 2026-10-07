@@ -1,5 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 /** Redirige vers `path` avec un message de succès affiché par <Flash>. */
@@ -53,3 +54,12 @@ export const pageParam = (v: string | undefined) => {
   const n = Number(v);
   return Number.isInteger(n) && n > 1 ? n : 1;
 };
+
+/** URL publique du site, pour les liens envoyés par e-mail. */
+export async function siteOrigin() {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}`;
+}

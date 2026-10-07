@@ -1,5 +1,6 @@
 import { count, desc } from "drizzle-orm";
 import type { Metadata } from "next";
+import ActionMenu from "@/components/admin/ActionMenu";
 import ConfirmAction from "@/components/admin/ConfirmAction";
 import Flash from "@/components/admin/Flash";
 import Modal, { ModalCancel } from "@/components/admin/Modal";
@@ -93,8 +94,8 @@ export default async function EventsAdminPage({ searchParams }: PageProps) {
                           <span className="pill pill--en_attente">Brouillon</span>
                         )}
                       </td>
-                      <td>
-                        <div className="row-actions">
+                      <td className="td-actions">
+                        <ActionMenu>
                           <Modal title={`Modifier « ${e.title} »`} trigger={{ kind: "icon", icon: "edit", label: "Modifier" }} wide>
                             <form action={saveEvent} className="aform">
                               <input type="hidden" name="id" value={e.id} />
@@ -119,7 +120,7 @@ export default async function EventsAdminPage({ searchParams }: PageProps) {
                             }
                             confirmLabel="Supprimer"
                           />
-                        </div>
+                        </ActionMenu>
                       </td>
                     </tr>
                   );

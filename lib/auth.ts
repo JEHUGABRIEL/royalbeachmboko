@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db, schema } from "./db";
+import type { AdminRole } from "./db/schema";
 
 const COOKIE = "rb_session";
 const SESSION_DAYS = 30;
@@ -36,13 +37,19 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
-export type CurrentAdmin = { id: number; email: string; name: string };
+export type CurrentAdmin = { id: number; email: string; name: string; role: AdminRole; avatar: string | null };
 
 export const getCurrentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
   const [row] = await db
-    .select({ id: schema.admins.id, email: schema.admins.email, name: schema.admins.name })
+    .select({
+      id: schema.admins.id,
+      email: schema.admins.email,
+      name: schema.admins.name,
+      role: schema.admins.role,
+      avatar: schema.admins.avatar,
+    })
     .from(schema.sessions)
     .innerJoin(schema.admins, eq(schema.admins.id, schema.sessions.adminId))
     .where(and(eq(schema.sessions.id, hashToken(token)), gt(schema.sessions.expiresAt, new Date())))
@@ -54,5 +61,12 @@ export const getCurrentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
 export async function requireAdmin(): Promise<CurrentAdmin> {
   const admin = await getCurrentAdmin();
   if (!admin) redirect("/admin/login");
+  return admin;
+}
+
+/** Réservé au superadmin (gestion des comptes administrateurs). */
+export async function requireSuperadmin(): Promise<CurrentAdmin> {
+  const admin = await requireAdmin();
+  if (admin.role !== "superadmin") redirect("/admin?error=" + encodeURIComponent("Action réservée au superadmin."));
   return admin;
 }

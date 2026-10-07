@@ -48,5 +48,23 @@ export function invitationEmail(link: string, inviter: string) {
   return { subject, text, html };
 }
 
+export function resetEmail(link: string, name: string, approver: string) {
+  const subject = "Réinitialisez votre mot de passe — Royal Beach Mbocko";
+  const text = `Bonjour ${name},\n\n${approver} a validé votre demande de réinitialisation de mot de passe.\n\nChoisissez et confirmez votre nouveau mot de passe ici : ${link}\n\nCe lien est valable 24 heures et ne fonctionne qu'une fois.`;
+  const html = `
+  <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:32px;background:#f7f4ee;color:#333">
+    <p style="font-family:Georgia,serif;font-size:26px;color:#a87f45;margin:0 0 4px">Royal Beach</p>
+    <p style="letter-spacing:4px;font-size:10px;text-transform:uppercase;margin:0 0 28px;color:#888">Mbocko · back-office</p>
+    <p>Bonjour ${escapeHtml(name)},</p>
+    <p><strong>${escapeHtml(approver)}</strong> a validé votre demande de réinitialisation de mot de passe.</p>
+    <p>Cliquez sur le bouton ci-dessous pour choisir et confirmer votre nouveau mot de passe.</p>
+    <p style="text-align:center;margin:32px 0">
+      <a href="${link}" style="background:#1c1c1c;color:#fff;padding:14px 30px;border-radius:30px;text-decoration:none;font-size:12px;letter-spacing:2px;text-transform:uppercase">Nouveau mot de passe</a>
+    </p>
+    <p style="font-size:12px;color:#888">Ce lien est valable 24 heures et ne fonctionne qu'une fois. Si vous n'êtes pas à l'origine de cette demande, prévenez un administrateur.</p>
+  </div>`;
+  return { subject, text, html };
+}
+
 export const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

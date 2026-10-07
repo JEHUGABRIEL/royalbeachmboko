@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { logActivity } from "@/lib/activity";
 import { db, schema } from "@/lib/db";
 import { todayISO } from "@/lib/queries";
 import { clientIp, hitLimit, tooMany } from "@/lib/rate-limit";
@@ -28,6 +29,13 @@ export async function POST(req: Request) {
     notes: r.notes || null,
   });
   revalidatePath("/admin", "layout");
+  await logActivity({
+    actorName: r.name,
+    action: "reservation.nouvelle",
+    category: "reservation",
+    summary: `Nouvelle réservation : ${r.name}, ${r.guests} pers. le ${r.date.split("-").reverse().join("/")} à ${r.time}`,
+    link: "/admin/reservations?statut=en_attente",
+  });
 
   const when = new Date(`${r.date}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   return NextResponse.json({

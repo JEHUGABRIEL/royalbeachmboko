@@ -2,6 +2,7 @@
 
 import { and, eq, ne } from "drizzle-orm";
 import { done, fail, int, slugify, str } from "@/lib/admin";
+import { logActivity } from "@/lib/activity";
 import { requireAdmin } from "@/lib/auth";
 import { db, schema } from "@/lib/db";
 import { deleteImage, saveImage } from "@/lib/storage";
@@ -15,7 +16,7 @@ const backTo = (fd: FormData) => {
 };
 
 export async function saveEvent(fd: FormData) {
-  await requireAdmin();
+  const me = await requireAdmin();
   const id = int(fd, "id");
   const back = backTo(fd);
   const title = str(fd, "title", 120);
@@ -63,14 +64,24 @@ export async function saveEvent(fd: FormData) {
   } else {
     await db.insert(schema.events).values(values);
   }
+  await logActivity({
+    actor: me,
+    action: current ? "evenement.modification" : "evenement.ajout",
+    category: "evenement",
+    summary: `a ${current ? "modifié" : "créé"} l'événement « ${title} » du ${date.split("-").reverse().join("/")}`,
+    link: BACK,
+  });
   done(back, `Événement « ${title} » enregistré.`);
 }
 
 export async function deleteEvent(fd: FormData) {
-  await requireAdmin();
+  const me = await requireAdmin();
   const id = int(fd, "id");
   if (!id) fail(backTo(fd), "Requête invalide.");
   const [row] = await db.delete(schema.events).where(eq(schema.events.id, id)).returning();
-  if (row) await deleteImage(row.image);
+  if (row) {
+    await deleteImage(row.image);
+    await logActivity({ actor: me, action: "evenement.suppression", category: "evenement", summary: `a supprimé l'événement « ${row.title} »`, link: BACK });
+  }
   done(backTo(fd), "Événement supprimé.");
 }

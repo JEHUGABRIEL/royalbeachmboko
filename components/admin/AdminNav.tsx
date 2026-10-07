@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Icon from "./icons";
 
-type Badges = { reservations: number; messages: number };
+type Badges = { reservations: number; messages: number; admins: number };
 type Category = { slug: string; label: string };
 
 const links = [
@@ -15,8 +15,9 @@ const links = [
   { href: "/admin/menu", label: "Menu", submenu: true },
   { href: "/admin/evenements", label: "Événements" },
   { href: "/admin/galerie", label: "Galerie" },
+  { href: "/admin/activite", label: "Activité" },
   { href: "/admin/parametres", label: "Infos & horaires" },
-  { href: "/admin/admins", label: "Administrateurs" },
+  { href: "/admin/admins", label: "Administrateurs", badge: "admins" as const },
 ];
 
 export default function AdminNav({ badges, categories }: { badges: Badges; categories: Category[] }) {

@@ -49,6 +49,28 @@ const paths = {
       <path d="M3 21c.8-4 3.5-6 7-6s6.2 2 7 6M16 11h6" />
     </>
   ),
+  more: (
+    <>
+      <circle cx="12" cy="5" r="1.6" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+      <circle cx="12" cy="19" r="1.6" fill="currentColor" />
+    </>
+  ),
+  bell: <path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15zM10 20.5a2 2 0 004 0" />,
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+  activity: <path d="M3 12h4l3-8 4 16 3-8h4" />,
+  key: (
+    <>
+      <circle cx="8" cy="15" r="4" />
+      <path d="M11 12l9-9M17 6l3 3M15 8l2 2" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" />
+      <circle cx="12" cy="13.5" r="3.5" />
+    </>
+  ),
   alert: (
     <>
       <path d="M12 3l10 18H2z" />

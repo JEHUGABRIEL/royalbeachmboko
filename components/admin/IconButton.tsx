@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useActionMenu } from "./ActionMenu";
 import Icon, { type IconName } from "./icons";
 
 type Props = {
@@ -11,9 +12,27 @@ type Props = {
   onClick?: () => void;
 };
 
-/** Bouton d'action carré avec icône ; le libellé sert d'infobulle et de nom accessible. */
+/** Bouton d'action : icône seule (avec infobulle), ou ligne « icône + libellé » dans un menu ⋮. */
 export default function IconButton({ icon, label, tone = "default", type = "submit", onClick }: Props) {
   const { pending } = useFormStatus();
+  const menu = useActionMenu();
+  if (menu) {
+    return (
+      <button
+        type={type}
+        role="menuitem"
+        className={`amenu__item amenu__item--${tone}`}
+        disabled={type === "submit" && pending}
+        onClick={() => {
+          onClick?.();
+          menu.close();
+        }}
+      >
+        <Icon name={icon} size={16} />
+        {label}
+      </button>
+    );
+  }
   return (
     <button
       type={type}

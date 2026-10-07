@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useActionMenu } from "./ActionMenu";
 import Icon, { type IconName } from "./icons";
 
 type Trigger =
@@ -25,6 +26,7 @@ export default function Modal({ title, trigger, children, wide }: Props) {
   const [open, setOpen] = useState(false);
   const params = useSearchParams();
   const signature = params.toString();
+  const menu = useActionMenu();
 
   useEffect(() => {
     setOpen(false);
@@ -35,7 +37,10 @@ export default function Modal({ title, trigger, children, wide }: Props) {
     if (!d) return;
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
-  }, [open]);
+    // Dans un menu ⋮ : le garder ouvert tant que la modale est affichée.
+    if (open) menu?.hold();
+    else menu?.release();
+  }, [open, menu]);
 
   return (
     <>
@@ -49,7 +54,18 @@ export default function Modal({ title, trigger, children, wide }: Props) {
           {trigger.label}
         </button>
       )}
-      {trigger.kind === "icon" && (
+      {trigger.kind === "icon" && menu && (
+        <button
+          type="button"
+          role="menuitem"
+          className={`amenu__item amenu__item--${trigger.tone ?? "default"}`}
+          onClick={() => setOpen(true)}
+        >
+          <Icon name={trigger.icon} size={16} />
+          {trigger.label}
+        </button>
+      )}
+      {trigger.kind === "icon" && !menu && (
         <button
           type="button"
           className={`ibtn ibtn--${trigger.tone ?? "default"}`}

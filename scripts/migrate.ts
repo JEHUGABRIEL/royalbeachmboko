@@ -1,7 +1,7 @@
 // Applique les migrations puis, si la base est vide, charge le contenu initial.
 // Lancé automatiquement avant chaque build (npm run build).
 import { existsSync } from "node:fs";
-import { count } from "drizzle-orm";
+import { count, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -21,6 +21,12 @@ async function main() {
   try {
     await migrate(db, { migrationsFolder: "drizzle" });
     console.log("[migrate] migrations à jour");
+
+    // Idempotent : le compte superadmin désigné garde toujours ce rôle.
+    await db
+      .update(schema.admins)
+      .set({ role: "superadmin" })
+      .where(sql`lower(${schema.admins.email}) = ${schema.SUPERADMIN_EMAIL}`);
 
     await db.transaction(async (tx) => {
       const [{ n: hasSettings }] = await tx.select({ n: count() }).from(schema.settings);
